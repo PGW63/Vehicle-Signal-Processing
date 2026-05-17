@@ -79,9 +79,10 @@ def main():
     capacity_coulomb = max(df["capacity_ah"].max() for df in cc_datasets) * 3600.0
     print(f"CC 파일 {len(cc_datasets)}개  |  용량 {capacity_coulomb/3600:.4f} Ah")
 
-    # ── 2. OCV 테이블 (전체 CC 풀링) ─────────────────────────────────────
-    pooled_cc = pd.concat(cc_datasets, ignore_index=True)
-    soc_table, ocv_table = build_ocv_table_from_cc(pooled_cc)
+    # ── 2. OCV 테이블 (전체 CC + CV 앵커) ───────────────────────────────
+    from utils import extract_cv_ocv_anchor, load_left_block
+    cv_anchors = [extract_cv_ocv_anchor(load_left_block(p)) for p in cc_paths]
+    soc_table, ocv_table = build_ocv_table_from_cc(cc_datasets, cv_anchors=cv_anchors)
     print(f"OCV 테이블  |  SOC {soc_table[0]:.3f} ~ {soc_table[-1]:.3f}")
 
     # ── 3. NIS 그리드서치 ────────────────────────────────────────────────

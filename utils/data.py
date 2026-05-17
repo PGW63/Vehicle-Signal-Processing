@@ -2,6 +2,19 @@ import numpy as np
 import pandas as pd
 
 
+def load_left_block(path):
+    """충전 블록(왼쪽)을 읽어옴. CV 말기 데이터로 OCV(SOC=1.0) 앵커 추출에 사용."""
+    df = pd.read_csv(path)
+    data = pd.DataFrame({
+        "time":        df.iloc[:, 0],
+        "current_raw": df.iloc[:, 1],
+        "soc_percent": df.iloc[:, 3],
+        "voltage":     df.iloc[:, 4],
+    }).dropna()
+    data["time"] = data["time"] - data["time"].iloc[0]
+    return data.reset_index(drop=True)
+
+
 ## 데이터셋에서 충전부가 아닌, 방전부를 읽어옴
 def load_right_block(path):
     df = pd.read_csv(path)

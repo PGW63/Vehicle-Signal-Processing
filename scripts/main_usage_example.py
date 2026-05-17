@@ -2,7 +2,6 @@ from pathlib import Path
 import sys
 
 import numpy as np
-import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -11,6 +10,8 @@ from utils import (
     add_coulomb_counted_soc,
     add_dataset_dod_soc,
     build_ocv_table_from_cc,
+    extract_cv_ocv_anchor,
+    load_left_block,
     load_right_block,
     plot_ekf_data,
     run_ekf,
@@ -22,7 +23,7 @@ DATASET_ROOT = (
     / "swhlqu-voltage_prediction_and_ISC_detection-dd56682"
 )
 
-# OCV-SOC 곡선용 정상 CC 디렉토리 (전체 파일 풀링)
+# OCV-SOC 곡선용 정상 CC 디렉토리
 NORMAL_CC_DIR = DATASET_ROOT / "NCM811_NORMAL_TEST" / "CC"
 
 # TARGET 경로는 EKF를 적용하고 싶은 데이터셋이다
@@ -43,24 +44,24 @@ TARGET_DST_PATH = (
 
 
 def main():
-    # 정상 CC 전체 파일을 풀링해 OCV-SOC 곡선 생성
+    # 정상 CC 전체 파일을 이용하여 OCV-SOC 곡선 생성
     cc_paths = sorted(NORMAL_CC_DIR.glob("ISC_BD_0.5CC_0.5CD_*ohm.csv"))
     cc_frames = [load_right_block(p) for p in cc_paths]
-    pooled_cc = pd.concat(cc_frames, ignore_index=True)
-    soc_table, ocv_table = build_ocv_table_from_cc(pooled_cc)
+    cv_anchors = [extract_cv_ocv_anchor(load_left_block(p)) for p in cc_paths]
+    soc_table, ocv_table = build_ocv_table_from_cc(cc_frames, cv_anchors=cv_anchors)
 
     # 데이터셋에서는 ah 단위이지만 EKF에서는 C로 구현해놨기에 3600을 곱한다
     capacity_coulomb = max(df["capacity_ah"].max() for df in cc_frames) * 3600.0
 
     # CC 데이터를 대상으로 EKF를 적용한다
-    # target_data = load_right_block(TARGET_CC_PATH)
-    # target_data = add_dataset_dod_soc(target_data)
-    # output_path = PROJECT_ROOT / "images" / "usage_example_cc_result.png"
+    target_data = load_right_block(TARGET_CC_PATH)
+    target_data = add_dataset_dod_soc(target_data)
+    output_path = PROJECT_ROOT / "images" / "usage_example_cc_result.png"
 
     # DST 데이터에 적용하려면 위 세 줄 대신 아래 코드를 사용 : Ground Truth 용
-    target_data = load_right_block(TARGET_DST_PATH)
-    target_data = add_coulomb_counted_soc(target_data, capacity_coulomb)
-    output_path = PROJECT_ROOT / "images" / "usage_example_dst_result.png"
+    # target_data = load_right_block(TARGET_DST_PATH)
+    # target_data = add_coulomb_counted_soc(target_data, capacity_coulomb)
+    # output_path = PROJECT_ROOT / "images" / "usage_example_dst_result.png"
 
     result_data = run_ekf(
         target_data,
