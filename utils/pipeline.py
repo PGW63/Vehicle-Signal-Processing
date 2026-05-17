@@ -14,8 +14,8 @@ def run_ekf(
 ):
     params = {
         "P0": np.diag([1e-4, 1e-3]),
-        "Q": np.diag([1e-8, 1e-6]),
-        "R": np.array([[2e-4]]),
+        "Q": np.diag([1e-6, 1e-7]),   # CC NIS 그리드서치 결과
+        "R": np.array([[3e-5]]),        # CC NIS 그리드서치 결과
         "R0": 0.015,
         "R1": 0.01,
         "C1": 2400.0,
@@ -54,6 +54,7 @@ def run_ekf(
     soc_est = []
     voltage_hat = []
     residual = []
+    S_vals = []
 
     times = data["time"].to_numpy()
     currents = data["current"].to_numpy()
@@ -66,10 +67,12 @@ def run_ekf(
         soc_est.append(result["soc"])
         voltage_hat.append(result["voltage_hat"])
         residual.append(result["residual"])
+        S_vals.append(result["S"])
 
     result_data = data.iloc[1:].copy()
     result_data["soc_est"] = soc_est
     result_data["voltage_hat"] = voltage_hat
     result_data["residual"] = residual
+    result_data["S"] = S_vals
 
     return result_data

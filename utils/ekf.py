@@ -74,6 +74,7 @@ class EKF:
             "vrc": self.x[1],
             "voltage_hat": voltage_hat,
             "residual": y,
+            "S": float(S[0, 0]),
         }
 
     def update(self, current, voltage, dt):

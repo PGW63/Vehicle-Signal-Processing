@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 
 import numpy as np
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -21,13 +22,8 @@ DATASET_ROOT = (
     / "swhlqu-voltage_prediction_and_ISC_detection-dd56682"
 )
 
-# OCV-SOC 곡선을 얻기 위해 정상상태일 때의 Constant Current를 레퍼런스로 얻음
-NORMAL_CC_PATH = (
-    DATASET_ROOT
-    / "NCM811_NORMAL_TEST"
-    / "CC"
-    / "ISC_BD_0.5CC_0.5CD_1000ohm.csv"
-)
+# OCV-SOC 곡선용 정상 CC 디렉토리 (전체 파일 풀링)
+NORMAL_CC_DIR = DATASET_ROOT / "NCM811_NORMAL_TEST" / "CC"
 
 # TARGET 경로는 EKF를 적용하고 싶은 데이터셋이다
 # 다른 Normal/ISC, CC/DST, 저항값 파일로 바꿔서 사용할 수 있다
@@ -47,14 +43,14 @@ TARGET_DST_PATH = (
 
 
 def main():
-    # EKF에 들어갈 OCV-SOC 그래프를 만들기 위함
-    normal_cc_data = load_right_block(NORMAL_CC_PATH)
-
-    # OCV-SOC 그래프를 얻는다
-    soc_table, ocv_table = build_ocv_table_from_cc(normal_cc_data)
+    # 정상 CC 전체 파일을 풀링해 OCV-SOC 곡선 생성
+    cc_paths = sorted(NORMAL_CC_DIR.glob("ISC_BD_0.5CC_0.5CD_*ohm.csv"))
+    cc_frames = [load_right_block(p) for p in cc_paths]
+    pooled_cc = pd.concat(cc_frames, ignore_index=True)
+    soc_table, ocv_table = build_ocv_table_from_cc(pooled_cc)
 
     # 데이터셋에서는 ah 단위이지만 EKF에서는 C로 구현해놨기에 3600을 곱한다
-    capacity_coulomb = normal_cc_data["capacity_ah"].max() * 3600.0
+    capacity_coulomb = max(df["capacity_ah"].max() for df in cc_frames) * 3600.0
 
     # CC 데이터를 대상으로 EKF를 적용한다
     # target_data = load_right_block(TARGET_CC_PATH)
