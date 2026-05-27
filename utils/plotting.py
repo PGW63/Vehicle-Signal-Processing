@@ -1,4 +1,5 @@
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -20,6 +21,25 @@ def plot_ekf_data(result_data, output_path, title=None):
     axes[1].set_xlabel("Time [s]")
     axes[1].set_ylabel("Innovation [V]")
     axes[1].grid(True)
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+def plot_voltage_data(original_voltage, noise_voltage,output_path, title=None):
+    fig, ax = plt.subplots(figsize=(11,6))
+    if title is not None:
+        fig.suptitle(title)
+
+    time = np.arange(len(original_voltage))
+
+    ax.plot(time, noise_voltage, label="noise")
+
+    ax.plot(time, original_voltage, label="original")
+    ax.set_ylabel("Voltage [V]")
+    ax.set_xlabel("Time [s]")
+    ax.legend()
+    ax.grid(True)
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
